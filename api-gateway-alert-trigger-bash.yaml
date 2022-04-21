@@ -1,0 +1,56 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: api-gateway-alert-trigger
+  namespace: default
+spec:
+  concurrencyPolicy: Allow
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          volumes:
+          - name: script-mount
+            configMap:
+              name: curl-500
+              defaultMode: 0777
+          containers:
+          - image: alpine:latest
+            args:
+            command: 
+            - /bin/sh
+            - -c
+            - |
+              apk add bash curl
+              chmod +x /tmp/*.sh
+              echo "execute script now"
+              bash
+              /tmp/curl.sh
+            imagePullPolicy: Always
+            name: api-gateway-alert-trigger
+            terminationMessagePath: /dev/termination-log
+            volumeMounts:
+            - mountPath: /tmp
+              name: script-mount
+          dnsPolicy: ClusterFirst
+          restartPolicy: OnFailure
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+  schedule: '0 12,18 * * *' #runs twice a day, at 12PM and 18PM
+  successfulJobsHistoryLimit: 3
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: curl-500
+data:
+  curl.sh: |
+    #!/bin/bash
+    for i in {1..500}
+    do
+      curl -d '{"your": "json","data": "here"}' -H 'Content-Type: application/json' -X POST 'your url here'
+    done

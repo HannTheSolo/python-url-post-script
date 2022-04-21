@@ -1,0 +1,28 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: api-gateway-alert-trigger
+  namespace: default
+spec:
+  concurrencyPolicy: Allow
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - image: build-python-image-with-dockerfile-and-specify-here
+            command: ["python"]
+            args: [
+              'main.py',
+              'your url here', 
+              '{"your": "json", "data": "here"}', 
+              '1' #how many requests should be sent
+            ]
+            imagePullPolicy: IfNotPresent
+            name: api-gateway-alert-trigger
+          restartPolicy: OnFailure
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+  schedule: '0 12,18 * * *' #runs twice a day, at 12PM and 18PM
+  successfulJobsHistoryLimit: 3
